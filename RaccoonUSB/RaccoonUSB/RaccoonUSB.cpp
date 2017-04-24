@@ -87,9 +87,8 @@ void BackUpFile(HANDLE hOut, TCHAR* dest, vector<lightFS> &src_list) {
 		}
 		// check target is a file and time
 		else if (target.dwFileAttributes & FILE_ATTRIBUTE_ARCHIVE) {
-			if (-1 == CompareFileTime(&(target.ftLastWriteTime), &(nTarget.ftLastWriteTime))) {
+			if (1 == CompareFileTime(&(target.ftLastWriteTime), &(nTarget.ftLastWriteTime))) {
 				CopyFile(itor->fileName, newpath, FALSE);
-				cout << itor->fileName << endl;
 				WriteFile(hOut, itor->fileName, wcslen(itor->fileName)*sizeof(TCHAR), &dwWrite, NULL);
 				WriteFile(hOut, "\r\n", strlen("\r\n"), &temp, NULL);
 			}
