@@ -1,9 +1,2 @@
 ﻿  RaccoonUSB.cpp
-c:\users\yiseo\documents\github\fp2017_as1\raccoonusb.cpp(39): warning C4996: '_wsplitpath': This function or variable may be unsafe. Consider using _wsplitpath_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
-  c:\program files (x86)\windows kits\10\include\10.0.10240.0\ucrt\corecrt_wstdlib.h(374): note: '_wsplitpath' 선언을 참조하십시오.
-c:\users\yiseo\documents\github\fp2017_as1\raccoonusb.cpp(50): warning C4996: 'wcscpy': This function or variable may be unsafe. Consider using wcscpy_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
-  c:\program files (x86)\windows kits\10\include\10.0.10240.0\ucrt\corecrt_wstring.h(121): note: 'wcscpy' 선언을 참조하십시오.
-c:\users\yiseo\documents\github\fp2017_as1\raccoonusb.cpp(78): warning C4996: '_wsplitpath': This function or variable may be unsafe. Consider using _wsplitpath_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
-  c:\program files (x86)\windows kits\10\include\10.0.10240.0\ucrt\corecrt_wstdlib.h(374): note: '_wsplitpath' 선언을 참조하십시오.
-  RaccoonUSB.vcxproj -> C:\Users\yiseo\Documents\GitHub\FP2017_AS1\RaccoonUSB\Debug\RaccoonUSB.exe
-  RaccoonUSB.vcxproj -> C:\Users\yiseo\Documents\GitHub\FP2017_AS1\RaccoonUSB\Debug\RaccoonUSB.pdb (Full PDB)
+c:\users\yiseo\documents\github\fp2017_as1\raccoonusb.cpp : fatal error C1041: 프로그램 데이터베이스 'C:\Users\yiseo\Documents\GitHub\FP2017_AS1\RaccoonUSB\RaccoonUSB\Debug\vc140.idb'을(를) 열 수 없습니다. 여러 CL.EXE에서 동일한 .PDB 파일에 쓰는 경우 /FS를 사용하십시오.

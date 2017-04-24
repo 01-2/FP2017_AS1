@@ -1,6 +1,6 @@
 /**
 * USB Backup tools
-* @Version : 1.0
+* @Version : 2.0
 * @author : Young Il Seo
 */
 
@@ -12,16 +12,40 @@
 #include <vector>
 #include <cstdlib>
 #include <io.h>
+#include <string>
 
 #pragma comment(lib, "shlwapi")
 
 using namespace std;
 
+typedef std::basic_string<TCHAR> tstring;
 
 typedef struct {
 	TCHAR fileName[MAX_PATH];
 	FILETIME LastWriteTime;
+	DWORD dwFileAttributes;
 }lightFS;
+
+TCHAR* StringToTCHAR(string& s)
+{
+	tstring tstr;
+	const char* all = s.c_str();
+	int len = 1 + strlen(all);
+	wchar_t* t = new wchar_t[len];
+	if (NULL == t) throw std::bad_alloc();
+	mbstowcs(t, all, len);
+	return (TCHAR*)t;
+}
+
+string TCHARToString(const TCHAR* ptsz)
+{
+	int len = wcslen((wchar_t*)ptsz);
+	char* psz = new char[2 * len + 1];
+	wcstombs(psz, (wchar_t*)ptsz, 2 * len + 1);
+	std::string s = psz;
+	delete[] psz;
+	return s;
+}
 
 void listFile(TCHAR *path, vector<lightFS> &flist) {
 	WIN32_FIND_DATA fileData;
@@ -42,6 +66,12 @@ void listFile(TCHAR *path, vector<lightFS> &flist) {
 		if (fileData.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) {
 			if (lstrcmp(fileData.cFileName, L".") && lstrcmp(fileData.cFileName, L"..")) {
 				wsprintf(newpath, L"%s%s%s\\*.*", drive, dir, fileData.cFileName);
+				wsprintf(fname, L"%s%s%s", drive, dir, fileData.cFileName);
+				_tcscpy(component.fileName, fname);
+				component.LastWriteTime = fileData.ftLastWriteTime;
+				component.dwFileAttributes = fileData.dwFileAttributes;
+				flist.push_back(component);
+
 				listFile(newpath, flist);
 			}
 		}
@@ -49,6 +79,7 @@ void listFile(TCHAR *path, vector<lightFS> &flist) {
 			wsprintf(fname, L"%s%s%s", drive, dir, fileData.cFileName);
 			_tcscpy(component.fileName, fname);
 			component.LastWriteTime = fileData.ftLastWriteTime;
+			component.dwFileAttributes = fileData.dwFileAttributes;
 			flist.push_back(component);
 		}
 		bResult = FindNextFile(hSrch, &fileData);
@@ -56,7 +87,7 @@ void listFile(TCHAR *path, vector<lightFS> &flist) {
 	FindClose(hSrch);
 }
 
-void BackUpFile(HANDLE hOut, TCHAR* dest, vector<lightFS> &src_list) {
+void BackUpFile(HANDLE hOut, TCHAR* src, TCHAR* dest, vector<lightFS> &src_list) {
 	HANDLE hFind;
 	HANDLE hTarget;
 
@@ -65,8 +96,6 @@ void BackUpFile(HANDLE hOut, TCHAR* dest, vector<lightFS> &src_list) {
 	DWORD dwWrite;
 	DWORD temp;
 
-	TCHAR ext[_MAX_EXT];
-	TCHAR fname[_MAX_FNAME];
 	TCHAR newpath[MAX_PATH];
 
 	vector<lightFS>::iterator itor;
@@ -74,22 +103,32 @@ void BackUpFile(HANDLE hOut, TCHAR* dest, vector<lightFS> &src_list) {
 
 	for (itor = src_list.begin(); itor != src_list.end(); itor++) {
 		hFind = FindFirstFile(itor->fileName, &target);
-
-		_tsplitpath(itor->fileName, NULL, NULL, fname, ext);
-		wsprintf(newpath, L"%s\\%s%s", dest, fname, ext);
-
+		
+		string itorFile = TCHARToString(itor->fileName);
+		string itorSrc = TCHARToString(src);
+		string strDirectory = itorFile.substr(itorSrc.length(), itorFile.length());
+		
+		string itorDest = TCHARToString(dest);
+		string finalDirectory = itorDest.append(strDirectory);
+		_tcscpy(newpath, StringToTCHAR(finalDirectory));
 		hTarget = FindFirstFile(newpath, &nTarget);
+
 		// it there is no file
-		if (hTarget == INVALID_HANDLE_VALUE){
-			CopyFile(itor->fileName, newpath, FALSE);
-			WriteFile(hOut, itor->fileName, wcslen(itor->fileName)*sizeof(TCHAR), &dwWrite, NULL);
-			WriteFile(hOut, "\r\n", strlen("\r\n"), &temp, NULL);
+		if (hTarget == INVALID_HANDLE_VALUE) {
+			if (itor->dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY){
+				CreateDirectory(newpath, NULL);
+			}
+			else{
+				CopyFile(itor->fileName, newpath, FALSE);
+				WriteFile(hOut, itor->fileName, wcslen(itor->fileName) * sizeof(TCHAR), &dwWrite, NULL);
+				WriteFile(hOut, "\r\n", strlen("\r\n"), &temp, NULL);
+			}
 		}
 		// check target is a file and time
 		else if (target.dwFileAttributes & FILE_ATTRIBUTE_ARCHIVE) {
 			if (1 == CompareFileTime(&(target.ftLastWriteTime), &(nTarget.ftLastWriteTime))) {
 				CopyFile(itor->fileName, newpath, FALSE);
-				WriteFile(hOut, itor->fileName, wcslen(itor->fileName)*sizeof(TCHAR), &dwWrite, NULL);
+				WriteFile(hOut, itor->fileName, wcslen(itor->fileName) * sizeof(TCHAR), &dwWrite, NULL);
 				WriteFile(hOut, "\r\n", strlen("\r\n"), &temp, NULL);
 			}
 		}
@@ -127,14 +166,14 @@ int _tmain(int argc, TCHAR* argv[]) {
 		hfile = CreateFile(_T("mybackup.log"), GENERIC_READ | GENERIC_WRITE,
 			0, NULL, CREATE_ALWAYS, 0, NULL);
 	}
-	
+
 	vector<lightFS> srcFileList;
 	TCHAR* first_path;
-	
+
 	first_path = argv[1];
 	lstrcat(first_path, L"\\*.*");
 	listFile(first_path, srcFileList);
-	BackUpFile(hfile, dst, srcFileList);
+	BackUpFile(hfile, src, dst, srcFileList);
 	CloseHandle(hfile);
 	return 0;
 }
