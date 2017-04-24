@@ -1,6 +1,6 @@
 /**
 * USB Backup tools
-* @Version : 2.0
+* @Version : 2.5
 * @author : Young Il Seo
 */
 
@@ -18,7 +18,6 @@
 
 using namespace std;
 
-typedef std::basic_string<TCHAR> tstring;
 
 typedef struct {
 	TCHAR fileName[MAX_PATH];
@@ -26,26 +25,6 @@ typedef struct {
 	DWORD dwFileAttributes;
 }lightFS;
 
-TCHAR* StringToTCHAR(string& s)
-{
-	tstring tstr;
-	const char* all = s.c_str();
-	int len = 1 + strlen(all);
-	wchar_t* t = new wchar_t[len];
-	if (NULL == t) throw std::bad_alloc();
-	mbstowcs(t, all, len);
-	return (TCHAR*)t;
-}
-
-string TCHARToString(const TCHAR* ptsz)
-{
-	int len = wcslen((wchar_t*)ptsz);
-	char* psz = new char[2 * len + 1];
-	wcstombs(psz, (wchar_t*)ptsz, 2 * len + 1);
-	std::string s = psz;
-	delete[] psz;
-	return s;
-}
 
 void listFile(TCHAR *path, vector<lightFS> &flist) {
 	WIN32_FIND_DATA fileData;
@@ -104,13 +83,16 @@ void BackUpFile(HANDLE hOut, TCHAR* src, TCHAR* dest, vector<lightFS> &src_list)
 	for (itor = src_list.begin(); itor != src_list.end(); itor++) {
 		hFind = FindFirstFile(itor->fileName, &target);
 		
-		string itorFile = TCHARToString(itor->fileName);
-		string itorSrc = TCHARToString(src);
-		string strDirectory = itorFile.substr(itorSrc.length(), itorFile.length());
+		wstring itorFile = itor->fileName;
+		wstring itorSrc = src;
+		wstring strDirectory = itorFile.substr(itorSrc.length(), itorFile.length());
 		
-		string itorDest = TCHARToString(dest);
-		string finalDirectory = itorDest.append(strDirectory);
-		_tcscpy(newpath, StringToTCHAR(finalDirectory));
+		wstring itorDest = dest;
+		wstring finalDirectory = itorDest.append(strDirectory);
+		
+		const wchar_t* wcstr = finalDirectory.c_str();
+		_tcscpy(newpath, wcstr);
+
 		hTarget = FindFirstFile(newpath, &nTarget);
 
 		// it there is no file
@@ -120,6 +102,8 @@ void BackUpFile(HANDLE hOut, TCHAR* src, TCHAR* dest, vector<lightFS> &src_list)
 			}
 			else{
 				CopyFile(itor->fileName, newpath, FALSE);
+				unsigned short mark = 0xFEFF;
+				WriteFile(hOut, &mark, sizeof(mark), &temp, NULL);
 				WriteFile(hOut, itor->fileName, wcslen(itor->fileName) * sizeof(TCHAR), &dwWrite, NULL);
 				WriteFile(hOut, "\r\n", strlen("\r\n"), &temp, NULL);
 			}
@@ -128,6 +112,8 @@ void BackUpFile(HANDLE hOut, TCHAR* src, TCHAR* dest, vector<lightFS> &src_list)
 		else if (target.dwFileAttributes & FILE_ATTRIBUTE_ARCHIVE) {
 			if (1 == CompareFileTime(&(target.ftLastWriteTime), &(nTarget.ftLastWriteTime))) {
 				CopyFile(itor->fileName, newpath, FALSE);
+				unsigned short mark = 0xFEFF;
+				WriteFile(hOut, &mark, sizeof(mark), &temp, NULL);
 				WriteFile(hOut, itor->fileName, wcslen(itor->fileName) * sizeof(TCHAR), &dwWrite, NULL);
 				WriteFile(hOut, "\r\n", strlen("\r\n"), &temp, NULL);
 			}
